@@ -383,6 +383,14 @@
       font-weight: 900;
     }
 
+    .frame-price {
+      display: block;
+      margin-top: 4px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--ink);
+    }
+
     .frame-option.selected .checkmark {
       border-color: var(--accent);
       background: var(--accent);
@@ -740,7 +748,10 @@
         const meta = document.createElement("span");
         meta.className = "frame-meta";
         meta.textContent = frame.description;
-        copy.append(name, meta);
+        const price = document.createElement("span");
+        price.className = "frame-price";
+        price.textContent = "$149.00";
+        copy.append(name, meta, price);
 
         const check = document.createElement("span");
         check.className = "checkmark";
