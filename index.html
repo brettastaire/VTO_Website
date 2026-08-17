@@ -1,0 +1,1046 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#f6f4ef" />
+  <title>Luma Eyewear — Virtual Try-On</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f4ef;
+      --panel: #ffffff;
+      --ink: #18202a;
+      --muted: #66717d;
+      --line: #dce1e6;
+      --accent: #1c5d99;
+      --accent-dark: #12426f;
+      --success: #1f7a4c;
+      --warning: #a96200;
+      --danger: #a33a38;
+      --shadow: 0 18px 55px rgba(24, 32, 42, 0.12);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at top left, rgba(28, 93, 153, 0.10), transparent 34rem),
+        var(--bg);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    button, input { font: inherit; }
+
+    .shell {
+      width: min(1120px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 30px 0 54px;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      margin-bottom: 22px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo {
+      width: 44px;
+      height: 44px;
+      border-radius: 14px;
+      display: grid;
+      place-items: center;
+      color: #fff;
+      background: linear-gradient(145deg, var(--accent), var(--accent-dark));
+      box-shadow: 0 10px 28px rgba(28, 93, 153, 0.25);
+      font-weight: 800;
+      letter-spacing: -0.04em;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.4rem, 2vw, 2rem);
+      letter-spacing: -0.035em;
+    }
+
+    .subtitle {
+      margin: 3px 0 0;
+      color: var(--muted);
+      font-size: 0.93rem;
+    }
+
+    .privacy-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.72);
+      padding: 9px 13px;
+      color: var(--muted);
+      font-size: 0.83rem;
+      white-space: nowrap;
+    }
+
+    .privacy-pill::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 0 4px rgba(31, 122, 76, 0.12);
+    }
+
+    .protocol-warning {
+      display: none;
+      margin-bottom: 16px;
+      padding: 14px 16px;
+      border: 1px solid #edc586;
+      border-radius: 14px;
+      background: #fff6e6;
+      color: #684000;
+      line-height: 1.5;
+    }
+
+    .protocol-warning code {
+      display: inline-block;
+      margin-top: 6px;
+      padding: 4px 7px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.8);
+      color: #4c330a;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.55fr) minmax(285px, 0.75fr);
+      gap: 22px;
+      align-items: start;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid rgba(220, 225, 230, 0.85);
+      border-radius: 22px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .viewer-card { padding: 18px; }
+
+    .stage {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      overflow: hidden;
+      border-radius: 17px;
+      background:
+        radial-gradient(circle at center, #2c3440, #151a21 74%);
+      isolation: isolate;
+    }
+
+    video, canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: fill;
+      transform: scaleX(-1);
+    }
+
+    video { z-index: 1; }
+    canvas { z-index: 2; pointer-events: none; }
+
+    .stage-placeholder {
+      position: absolute;
+      inset: 0;
+      z-index: 3;
+      display: grid;
+      place-items: center;
+      padding: 30px;
+      text-align: center;
+      color: rgba(255, 255, 255, 0.84);
+      background:
+        linear-gradient(145deg, rgba(16, 21, 29, 0.32), rgba(16, 21, 29, 0.78));
+      transition: opacity 180ms ease;
+    }
+
+    .stage-placeholder.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .camera-icon {
+      width: 74px;
+      height: 74px;
+      margin: 0 auto 14px;
+      border-radius: 22px;
+      display: grid;
+      place-items: center;
+      background: rgba(255, 255, 255, 0.10);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      font-size: 2rem;
+    }
+
+    .stage-placeholder strong {
+      display: block;
+      margin-bottom: 7px;
+      color: #fff;
+      font-size: 1.1rem;
+    }
+
+    .stage-placeholder p {
+      max-width: 480px;
+      margin: 0;
+      line-height: 1.5;
+      font-size: 0.92rem;
+    }
+
+    .status-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      margin-top: 14px;
+      min-height: 38px;
+    }
+
+    .status {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      color: var(--muted);
+      font-size: 0.91rem;
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      flex: 0 0 10px;
+      border-radius: 50%;
+      background: #9da6af;
+      box-shadow: 0 0 0 4px rgba(157, 166, 175, 0.14);
+    }
+
+    .status[data-state="working"] .status-dot {
+      background: var(--warning);
+      box-shadow: 0 0 0 4px rgba(169, 98, 0, 0.12);
+      animation: pulse 1.15s ease-in-out infinite;
+    }
+
+    .status[data-state="success"] .status-dot {
+      background: var(--success);
+      box-shadow: 0 0 0 4px rgba(31, 122, 76, 0.12);
+    }
+
+    .status[data-state="error"] .status-dot {
+      background: var(--danger);
+      box-shadow: 0 0 0 4px rgba(163, 58, 56, 0.12);
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(0.85); opacity: 0.66; }
+      50% { transform: scale(1.12); opacity: 1; }
+    }
+
+    .tracking-chip {
+      border-radius: 999px;
+      background: #f0f3f6;
+      padding: 6px 10px;
+      color: var(--muted);
+      font-size: 0.78rem;
+      white-space: nowrap;
+    }
+
+    .button-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    .button {
+      border: 0;
+      border-radius: 12px;
+      min-height: 44px;
+      padding: 10px 16px;
+      cursor: pointer;
+      font-weight: 700;
+      transition: transform 120ms ease, box-shadow 120ms ease, opacity 120ms ease;
+    }
+
+    .button:hover:not(:disabled) { transform: translateY(-1px); }
+    .button:active:not(:disabled) { transform: translateY(0); }
+    .button:disabled { cursor: not-allowed; opacity: 0.45; }
+
+    .button-primary {
+      color: #fff;
+      background: linear-gradient(145deg, var(--accent), var(--accent-dark));
+      box-shadow: 0 10px 22px rgba(28, 93, 153, 0.22);
+    }
+
+    .button-secondary {
+      color: var(--ink);
+      background: #edf1f4;
+    }
+
+    .button-ghost {
+      color: var(--accent-dark);
+      background: #eaf2fa;
+    }
+
+    .side-card { padding: 22px; }
+
+    .side-card h2 {
+      margin: 0 0 5px;
+      font-size: 1.08rem;
+      letter-spacing: -0.02em;
+    }
+
+    .side-card > p {
+      margin: 0 0 18px;
+      color: var(--muted);
+      line-height: 1.45;
+      font-size: 0.9rem;
+    }
+
+    .frames {
+      display: grid;
+      gap: 11px;
+    }
+
+    .frame-option {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 94px 1fr 22px;
+      align-items: center;
+      gap: 13px;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 15px;
+      background: #fff;
+      color: var(--ink);
+      text-align: left;
+      cursor: pointer;
+      transition: border-color 130ms ease, box-shadow 130ms ease, transform 130ms ease;
+    }
+
+    .frame-option:hover {
+      border-color: #a9bfd4;
+      transform: translateY(-1px);
+    }
+
+    .frame-option.selected {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(28, 93, 153, 0.10);
+    }
+
+    .frame-preview {
+      height: 58px;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      border-radius: 10px;
+      background:
+        linear-gradient(45deg, #f0f0f0 25%, transparent 25%),
+        linear-gradient(-45deg, #f0f0f0 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #f0f0f0 75%),
+        linear-gradient(-45deg, transparent 75%, #f0f0f0 75%),
+        #fff;
+      background-size: 12px 12px;
+      background-position: 0 0, 0 6px, 6px -6px, -6px 0;
+    }
+
+    .frame-preview img {
+      width: 92%;
+      height: 92%;
+      object-fit: contain;
+    }
+
+    .frame-name { font-weight: 760; font-size: 0.91rem; }
+    .frame-meta { margin-top: 3px; color: var(--muted); font-size: 0.76rem; }
+
+    .checkmark {
+      width: 19px;
+      height: 19px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--line);
+      border-radius: 50%;
+      color: transparent;
+      font-size: 0.72rem;
+      font-weight: 900;
+    }
+
+    .frame-option.selected .checkmark {
+      border-color: var(--accent);
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .divider {
+      height: 1px;
+      margin: 20px 0;
+      background: var(--line);
+    }
+
+    details {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: #fafbfc;
+      overflow: hidden;
+    }
+
+    summary {
+      padding: 13px 14px;
+      cursor: pointer;
+      font-weight: 720;
+      font-size: 0.86rem;
+    }
+
+    .calibration {
+      padding: 2px 14px 15px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .range-row {
+      display: grid;
+      grid-template-columns: 92px 1fr 44px;
+      align-items: center;
+      gap: 9px;
+      color: var(--muted);
+      font-size: 0.79rem;
+    }
+
+    input[type="range"] { width: 100%; }
+
+    .instructions {
+      margin-top: 22px;
+      padding: 18px 20px;
+      border-radius: 18px;
+      border: 1px solid rgba(220, 225, 230, 0.9);
+      background: rgba(255, 255, 255, 0.73);
+      color: var(--muted);
+      line-height: 1.55;
+      font-size: 0.9rem;
+    }
+
+    .instructions strong { color: var(--ink); }
+
+    .error-panel {
+      display: none;
+      margin-top: 14px;
+      padding: 13px 15px;
+      border-radius: 12px;
+      border: 1px solid #e6b4b1;
+      background: #fff2f1;
+      color: #6e2927;
+      white-space: pre-wrap;
+      font-size: 0.82rem;
+      line-height: 1.45;
+    }
+
+    .research-data {
+      display: none;
+      width: 100%;
+      min-height: 120px;
+      margin-top: 12px;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      resize: vertical;
+      background: #f7f8fa;
+      color: var(--ink);
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.75rem;
+    }
+
+    @media (max-width: 830px) {
+      header { align-items: flex-start; }
+      .privacy-pill { display: none; }
+      .grid { grid-template-columns: 1fr; }
+      .side-card { padding: 19px; }
+    }
+
+    @media (max-width: 520px) {
+      .shell { width: min(100% - 18px, 1120px); padding-top: 18px; }
+      .viewer-card { padding: 10px; }
+      .stage { border-radius: 14px; }
+      .status-bar { align-items: flex-start; flex-direction: column; gap: 8px; }
+      .button-row .button { flex: 1; }
+      .frame-option { grid-template-columns: 82px 1fr 20px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <div class="brand">
+        <div class="logo" aria-hidden="true">L</div>
+        <div>
+          <h1>Luma Eyewear Virtual Try-On</h1>
+          <p class="subtitle">See how each frame looks on your own face.</p>
+        </div>
+      </div>
+      <div class="privacy-pill">Camera frames are processed in this browser</div>
+    </header>
+
+    <div id="protocolWarning" class="protocol-warning" role="alert">
+      <strong>This page was opened as a local file.</strong><br />
+      Camera access works most reliably from a local web server. In Terminal, open the folder containing this file and run:<br />
+      <code>python3 -m http.server 8000</code><br />
+      Then visit <code>http://localhost:8000</code>.
+    </div>
+
+    <section class="grid">
+      <article class="card viewer-card">
+        <div id="stage" class="stage">
+          <video id="video" autoplay muted playsinline aria-label="Live camera preview"></video>
+          <canvas id="overlay" aria-hidden="true"></canvas>
+          <div id="placeholder" class="stage-placeholder">
+            <div>
+              <div class="camera-icon" aria-hidden="true">◉</div>
+              <strong>Start your camera to try on frames</strong>
+              <p>Center your face, look toward the screen, and use even lighting. This page does not save or upload your camera image.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="status-bar">
+          <div id="status" class="status" data-state="idle" role="status" aria-live="polite">
+            <span class="status-dot" aria-hidden="true"></span>
+            <span id="statusText">Camera is off.</span>
+          </div>
+          <div id="trackingChip" class="tracking-chip">Tracking: —</div>
+        </div>
+
+        <div class="button-row">
+          <button id="startButton" class="button button-primary" type="button">Start virtual try-on</button>
+          <button id="stopButton" class="button button-secondary" type="button" disabled>Stop camera</button>
+          <button id="dataButton" class="button button-ghost" type="button">Show usage data</button>
+        </div>
+
+        <div id="errorPanel" class="error-panel" role="alert"></div>
+        <textarea id="researchData" class="research-data" readonly aria-label="Usage data"></textarea>
+      </article>
+
+      <aside class="card side-card">
+        <h2>Select a frame</h2>
+        <p>Choose among three fictional products. You can switch frames while the camera is running.</p>
+
+        <div id="frameOptions" class="frames"></div>
+
+        <div class="divider"></div>
+
+        <details>
+          <summary>Researcher calibration controls</summary>
+          <div class="calibration">
+            <label class="range-row">
+              <span>Frame size</span>
+              <input id="sizeSlider" type="range" min="1.50" max="2.45" step="0.01" value="1.95" />
+              <output id="sizeOutput">1.95</output>
+            </label>
+            <label class="range-row">
+              <span>Vertical</span>
+              <input id="verticalSlider" type="range" min="-0.22" max="0.32" step="0.01" value="0.02" />
+              <output id="verticalOutput">0.02</output>
+            </label>
+            <label class="range-row">
+              <span>Smoothing</span>
+              <input id="smoothSlider" type="range" min="0.10" max="0.80" step="0.05" value="0.35" />
+              <output id="smoothOutput">0.35</output>
+            </label>
+          </div>
+        </details>
+      </aside>
+    </section>
+
+    <section class="instructions">
+      <strong>For local testing on a Mac:</strong> keep this complete website folder together, run <code>python3 -m http.server 8000</code> from that folder, and open <code>http://localhost:8000</code> in Chrome or Safari. The first model load requires an internet connection. For a Prolific study, deploy this page to an HTTPS host rather than embedding it inside an iframe.
+    </section>
+  </main>
+
+  <script type="module">
+    const CONFIG = Object.freeze({
+      visionModuleUrl: "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/vision_bundle.mjs",
+      wasmRootUrl: "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm",
+      faceModelUrl: "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/latest/face_landmarker.task",
+      targetDetectionIntervalMs: 60,
+      minimumCameraWidth: 640,
+      minimumCameraHeight: 480
+    });
+
+    const FRAMES = [
+      {
+        id: "black-round",
+        name: "Black Round",
+        description: "Glossy acetate · clear lens · front frame only",
+        dataUrl: "frames/black-round.png",
+        scale: 1.70,
+        verticalOffset: 0.020
+      },
+      {
+        id: "brown-square",
+        name: "Brown Square",
+        description: "Tortoiseshell acetate · clear lens · front frame only",
+        dataUrl: "frames/brown-square.png",
+        scale: 1.70,
+        verticalOffset: 0.025
+      },
+      {
+        id: "silver-aviator",
+        name: "Silver Aviator",
+        description: "Silver metal · clear lens · front frame only",
+        dataUrl: "frames/silver-aviator.png",
+        scale: 1.70,
+        verticalOffset: 0.035
+      }
+    ];
+
+    const elements = {
+      video: document.getElementById("video"),
+      canvas: document.getElementById("overlay"),
+      stage: document.getElementById("stage"),
+      placeholder: document.getElementById("placeholder"),
+      startButton: document.getElementById("startButton"),
+      stopButton: document.getElementById("stopButton"),
+      dataButton: document.getElementById("dataButton"),
+      status: document.getElementById("status"),
+      statusText: document.getElementById("statusText"),
+      trackingChip: document.getElementById("trackingChip"),
+      errorPanel: document.getElementById("errorPanel"),
+      protocolWarning: document.getElementById("protocolWarning"),
+      frameOptions: document.getElementById("frameOptions"),
+      sizeSlider: document.getElementById("sizeSlider"),
+      verticalSlider: document.getElementById("verticalSlider"),
+      smoothSlider: document.getElementById("smoothSlider"),
+      sizeOutput: document.getElementById("sizeOutput"),
+      verticalOutput: document.getElementById("verticalOutput"),
+      smoothOutput: document.getElementById("smoothOutput"),
+      researchData: document.getElementById("researchData")
+    };
+
+    const context = elements.canvas.getContext("2d", { alpha: true });
+    const frameImage = new Image();
+
+    let selectedFrame = FRAMES[0];
+    let cameraStream = null;
+    let faceLandmarker = null;
+    let animationId = null;
+    let lastDetectionAt = 0;
+    let lastVideoTime = -1;
+    let smoothedPose = null;
+    let running = false;
+
+    const usage = {
+      sessionStartedAt: new Date().toISOString(),
+      cameraRequestedAt: null,
+      cameraStartedAt: null,
+      cameraStoppedAt: null,
+      modelReadyAt: null,
+      detectionsAttempted: 0,
+      detectionsWithFace: 0,
+      frameSelections: [],
+      technicalErrors: [],
+      browser: navigator.userAgent,
+      pageUrl: window.location.href,
+      prolificPid: new URLSearchParams(window.location.search).get("PROLIFIC_PID"),
+      studyId: new URLSearchParams(window.location.search).get("STUDY_ID"),
+      sessionId: new URLSearchParams(window.location.search).get("SESSION_ID")
+    };
+
+    function setStatus(message, state = "idle") {
+      elements.status.dataset.state = state;
+      elements.statusText.textContent = message;
+    }
+
+    function showError(error, contextLabel = "Error") {
+      const name = error?.name || "Error";
+      const message = error?.message || String(error);
+      const details = `${contextLabel}\n${name}: ${message}`;
+      elements.errorPanel.textContent = details;
+      elements.errorPanel.style.display = "block";
+      usage.technicalErrors.push({
+        at: new Date().toISOString(),
+        context: contextLabel,
+        name,
+        message
+      });
+      updateResearchData();
+    }
+
+    function clearError() {
+      elements.errorPanel.textContent = "";
+      elements.errorPanel.style.display = "none";
+    }
+
+    function trackingRate() {
+      if (!usage.detectionsAttempted) return null;
+      return usage.detectionsWithFace / usage.detectionsAttempted;
+    }
+
+    function updateTrackingChip() {
+      const rate = trackingRate();
+      elements.trackingChip.textContent = rate === null
+        ? "Tracking: —"
+        : `Tracking: ${Math.round(rate * 100)}%`;
+    }
+
+    function updateResearchData() {
+      const started = usage.cameraStartedAt ? Date.parse(usage.cameraStartedAt) : null;
+      const stopped = usage.cameraStoppedAt ? Date.parse(usage.cameraStoppedAt) : Date.now();
+      const totalCameraSeconds = started ? Math.max(0, (stopped - started) / 1000) : 0;
+      const payload = {
+        ...usage,
+        selectedFrame: selectedFrame.id,
+        totalCameraSeconds: Number(totalCameraSeconds.toFixed(1)),
+        trackingRate: trackingRate() === null ? null : Number(trackingRate().toFixed(3)),
+        calibration: {
+          scale: Number(elements.sizeSlider.value),
+          verticalOffset: Number(elements.verticalSlider.value),
+          smoothing: Number(elements.smoothSlider.value)
+        }
+      };
+      elements.researchData.value = JSON.stringify(payload, null, 2);
+    }
+
+    function renderFrameOptions() {
+      elements.frameOptions.replaceChildren();
+
+      for (const frame of FRAMES) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = `frame-option${frame.id === selectedFrame.id ? " selected" : ""}`;
+        button.dataset.frameId = frame.id;
+        button.setAttribute("aria-pressed", String(frame.id === selectedFrame.id));
+
+        const preview = document.createElement("span");
+        preview.className = "frame-preview";
+        const image = document.createElement("img");
+        image.src = frame.dataUrl;
+        image.alt = "";
+        preview.appendChild(image);
+
+        const copy = document.createElement("span");
+        const name = document.createElement("span");
+        name.className = "frame-name";
+        name.textContent = frame.name;
+        const meta = document.createElement("span");
+        meta.className = "frame-meta";
+        meta.textContent = frame.description;
+        copy.append(name, meta);
+
+        const check = document.createElement("span");
+        check.className = "checkmark";
+        check.textContent = "✓";
+        check.setAttribute("aria-hidden", "true");
+
+        button.append(preview, copy, check);
+        button.addEventListener("click", () => selectFrame(frame.id));
+        elements.frameOptions.appendChild(button);
+      }
+    }
+
+    async function selectFrame(frameId) {
+      const nextFrame = FRAMES.find((frame) => frame.id === frameId);
+      if (!nextFrame) return;
+
+      selectedFrame = nextFrame;
+      elements.sizeSlider.value = String(nextFrame.scale);
+      elements.verticalSlider.value = String(nextFrame.verticalOffset);
+      syncCalibrationOutputs();
+
+      frameImage.src = nextFrame.dataUrl;
+      try {
+        await frameImage.decode();
+      } catch {
+        // The image is embedded and may already be decoded; rendering can continue.
+      }
+
+      usage.frameSelections.push({
+        frameId: nextFrame.id,
+        at: new Date().toISOString(),
+        secondsSinceCameraStart: usage.cameraStartedAt
+          ? Number(((Date.now() - Date.parse(usage.cameraStartedAt)) / 1000).toFixed(1))
+          : null
+      });
+      renderFrameOptions();
+      updateResearchData();
+    }
+
+    function syncCalibrationOutputs() {
+      elements.sizeOutput.value = Number(elements.sizeSlider.value).toFixed(2);
+      elements.verticalOutput.value = Number(elements.verticalSlider.value).toFixed(2);
+      elements.smoothOutput.value = Number(elements.smoothSlider.value).toFixed(2);
+    }
+
+    function lerp(current, next, alpha) {
+      return current + (next - current) * alpha;
+    }
+
+    function lerpAngle(current, next, alpha) {
+      let delta = next - current;
+      while (delta > Math.PI) delta -= Math.PI * 2;
+      while (delta < -Math.PI) delta += Math.PI * 2;
+      return current + delta * alpha;
+    }
+
+    function smoothPose(nextPose) {
+      const alpha = Number(elements.smoothSlider.value);
+      if (!smoothedPose) {
+        smoothedPose = { ...nextPose };
+        return smoothedPose;
+      }
+
+      smoothedPose.centerX = lerp(smoothedPose.centerX, nextPose.centerX, alpha);
+      smoothedPose.centerY = lerp(smoothedPose.centerY, nextPose.centerY, alpha);
+      smoothedPose.eyeDistance = lerp(smoothedPose.eyeDistance, nextPose.eyeDistance, alpha);
+      smoothedPose.angle = lerpAngle(smoothedPose.angle, nextPose.angle, alpha);
+      return smoothedPose;
+    }
+
+    function drawGlasses(results) {
+      context.clearRect(0, 0, elements.canvas.width, elements.canvas.height);
+      usage.detectionsAttempted += 1;
+
+      const landmarks = results?.faceLandmarks?.[0];
+      if (!landmarks) {
+        setStatus("Face not detected. Move closer and face the screen.", "working");
+        updateTrackingChip();
+        return;
+      }
+
+      usage.detectionsWithFace += 1;
+
+      // MediaPipe landmarks 33 and 263 are outer eye-corner anchors.
+      const firstEye = landmarks[33];
+      const secondEye = landmarks[263];
+
+      const x1 = firstEye.x * elements.canvas.width;
+      const y1 = firstEye.y * elements.canvas.height;
+      const x2 = secondEye.x * elements.canvas.width;
+      const y2 = secondEye.y * elements.canvas.height;
+
+      const eyeDistance = Math.hypot(x2 - x1, y2 - y1);
+      const pose = smoothPose({
+        centerX: (x1 + x2) / 2,
+        centerY: (y1 + y2) / 2,
+        eyeDistance,
+        angle: Math.atan2(y2 - y1, x2 - x1)
+      });
+
+      const scale = Number(elements.sizeSlider.value);
+      const verticalOffset = Number(elements.verticalSlider.value);
+      const glassesWidth = pose.eyeDistance * scale;
+      const imageRatio = frameImage.naturalWidth > 0
+        ? frameImage.naturalHeight / frameImage.naturalWidth
+        : 0.5;
+      const glassesHeight = glassesWidth * imageRatio;
+      const adjustedCenterY = pose.centerY + glassesWidth * verticalOffset;
+
+      context.save();
+      context.translate(pose.centerX, adjustedCenterY);
+      context.rotate(pose.angle);
+      context.drawImage(
+        frameImage,
+        -glassesWidth / 2,
+        -glassesHeight / 2,
+        glassesWidth,
+        glassesHeight
+      );
+      context.restore();
+
+      setStatus("Face detected. Try another frame or turn your head slightly.", "success");
+      updateTrackingChip();
+    }
+
+    async function loadFaceLandmarker() {
+      if (faceLandmarker) return faceLandmarker;
+
+      setStatus("Camera active. Loading face-tracking model…", "working");
+
+      const visionModule = await import(CONFIG.visionModuleUrl);
+      const visionFiles = await visionModule.FilesetResolver.forVisionTasks(CONFIG.wasmRootUrl);
+
+      const options = {
+        baseOptions: {
+          modelAssetPath: CONFIG.faceModelUrl,
+          delegate: "GPU"
+        },
+        runningMode: "VIDEO",
+        numFaces: 1,
+        minFaceDetectionConfidence: 0.5,
+        minFacePresenceConfidence: 0.5,
+        minTrackingConfidence: 0.5
+      };
+
+      try {
+        faceLandmarker = await visionModule.FaceLandmarker.createFromOptions(visionFiles, options);
+      } catch (gpuError) {
+        console.warn("GPU initialization failed; retrying with CPU.", gpuError);
+        faceLandmarker = await visionModule.FaceLandmarker.createFromOptions(visionFiles, {
+          ...options,
+          baseOptions: {
+            modelAssetPath: CONFIG.faceModelUrl,
+            delegate: "CPU"
+          }
+        });
+      }
+
+      usage.modelReadyAt = new Date().toISOString();
+      updateResearchData();
+      return faceLandmarker;
+    }
+
+    async function startCamera() {
+      if (running) return;
+      clearError();
+      elements.startButton.disabled = true;
+      usage.cameraRequestedAt = new Date().toISOString();
+      updateResearchData();
+
+      try {
+        if (!window.isSecureContext) {
+          throw new Error("The page is not running in a secure browser context. Use http://localhost or an HTTPS website.");
+        }
+        if (!navigator.mediaDevices?.getUserMedia) {
+          throw new Error("Camera access is unavailable in this browser context.");
+        }
+
+        setStatus("Requesting camera permission…", "working");
+
+        const metadataReady = new Promise((resolve) => {
+          elements.video.onloadedmetadata = resolve;
+        });
+
+        cameraStream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: "user",
+            width: { ideal: CONFIG.minimumCameraWidth },
+            height: { ideal: CONFIG.minimumCameraHeight }
+          },
+          audio: false
+        });
+
+        elements.video.srcObject = cameraStream;
+        await metadataReady;
+        await elements.video.play();
+
+        elements.canvas.width = elements.video.videoWidth || CONFIG.minimumCameraWidth;
+        elements.canvas.height = elements.video.videoHeight || CONFIG.minimumCameraHeight;
+        elements.stage.style.aspectRatio = `${elements.canvas.width} / ${elements.canvas.height}`;
+        elements.placeholder.classList.add("hidden");
+
+        usage.cameraStartedAt = new Date().toISOString();
+        usage.cameraStoppedAt = null;
+        running = true;
+        elements.stopButton.disabled = false;
+
+        await loadFaceLandmarker();
+
+        lastDetectionAt = 0;
+        lastVideoTime = -1;
+        smoothedPose = null;
+        setStatus("Face tracking is ready. Look toward the screen.", "success");
+        animationId = requestAnimationFrame(renderLoop);
+      } catch (error) {
+        stopCamera({ preserveStatus: true });
+        setStatus("Virtual try-on could not start.", "error");
+        showError(error, "Unable to start camera or face tracking");
+        elements.startButton.disabled = false;
+      }
+    }
+
+    function renderLoop(timestamp) {
+      if (!running || !faceLandmarker) return;
+
+      try {
+        const enoughTimePassed = timestamp - lastDetectionAt >= CONFIG.targetDetectionIntervalMs;
+        const videoFrameChanged = elements.video.currentTime !== lastVideoTime;
+
+        if (elements.video.readyState >= 2 && enoughTimePassed && videoFrameChanged) {
+          const results = faceLandmarker.detectForVideo(elements.video, performance.now());
+          drawGlasses(results);
+          lastDetectionAt = timestamp;
+          lastVideoTime = elements.video.currentTime;
+        }
+      } catch (error) {
+        setStatus("A face-tracking error occurred.", "error");
+        showError(error, "Face-tracking error");
+        stopCamera({ preserveStatus: true });
+        return;
+      }
+
+      animationId = requestAnimationFrame(renderLoop);
+    }
+
+    function stopCamera({ preserveStatus = false } = {}) {
+      running = false;
+
+      if (animationId !== null) {
+        cancelAnimationFrame(animationId);
+        animationId = null;
+      }
+
+      if (cameraStream) {
+        for (const track of cameraStream.getTracks()) track.stop();
+        cameraStream = null;
+      }
+
+      elements.video.srcObject = null;
+      context.clearRect(0, 0, elements.canvas.width, elements.canvas.height);
+      elements.placeholder.classList.remove("hidden");
+      elements.startButton.disabled = false;
+      elements.stopButton.disabled = true;
+      smoothedPose = null;
+
+      if (usage.cameraStartedAt) usage.cameraStoppedAt = new Date().toISOString();
+      if (!preserveStatus) setStatus("Camera is off.", "idle");
+      updateResearchData();
+    }
+
+    elements.startButton.addEventListener("click", startCamera);
+    elements.stopButton.addEventListener("click", () => stopCamera());
+
+    elements.dataButton.addEventListener("click", () => {
+      updateResearchData();
+      const isVisible = elements.researchData.style.display === "block";
+      elements.researchData.style.display = isVisible ? "none" : "block";
+      elements.dataButton.textContent = isVisible ? "Show usage data" : "Hide usage data";
+    });
+
+    for (const control of [elements.sizeSlider, elements.verticalSlider, elements.smoothSlider]) {
+      control.addEventListener("input", () => {
+        syncCalibrationOutputs();
+        updateResearchData();
+      });
+    }
+
+    window.addEventListener("pagehide", () => stopCamera({ preserveStatus: true }));
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) updateResearchData();
+    });
+
+    if (window.location.protocol === "file:") {
+      elements.protocolWarning.style.display = "block";
+    }
+
+    syncCalibrationOutputs();
+    renderFrameOptions();
+    selectFrame(FRAMES[0].id);
+    updateResearchData();
+  </script>
+</body>
+</html>
